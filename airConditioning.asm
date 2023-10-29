@@ -1,86 +1,93 @@
 .data
-	textHeight: .asciiz "\nInsira o valor do pe direito\n"
-	height : .float 0.00
-	
-	textWidth : .asciiz "\nInsira o valor da largura\n"
-	width : .float 0.00
-	
-	textLength : .asciiz "\nInsira o valor do comprimento\n"
-	length : .float 0.00
-	
-	
-	textPosition: .asciiz "\n\nQual a posição do ambiente?\n\t[1]Entre andares;\n\t[2]Sob telhado;\n"
-	position: .word 0
+	inputHeight: .asciiz "\nInsira o valor do pe direito\n"
+	inputWidth : .asciiz "\nInsira o valor da largura\n"
+	inputLength : .asciiz "\nInsira o valor do comprimento\n"
+	inputPosition: .asciiz "\n\nQual a posição do ambiente?\n\t[1]Entre andares;\n\t[2]Sob telhado;\n"
 
+	roomOutput: .asciiz "\nkcal/h recinto:"
+	roomVolume: .float 0.0
+	roomKcal : .float 0.0
 	
+	floors: .float 16.0
+	roof: .float 22.3
+	
+.macro printS(%string)
+.text
+	li $v0, 4
+	la $a0, %string
+	syscall
+.end_macro
+
+.macro printF()
+.text
+	li $v0, 2
+	syscall
+.end_macro
+
+.macro scanF()
+.text
+	li $v0, 6
+	syscall
+.end_macro
+
 .text
 .globl main
 
 main:
-
-	li $v0, 4
-	la $a0, textLength
- 	syscall
-	
- 	li $v0, 6
- 	syscall
+	printS(inputLength)
+ 	scanF()
+ 	mov.s $f2, $f0 #length
  	
- 	swc1 $f0, length
- 	lwc1 $f1, length 	# comprimento em $f1
+ 	printS(inputWidth)
+	scanF()
+ 	mov.s $f4, $f0
  	
- 	li $v0, 4
-	la $a0, textWidth
- 	syscall
-	
- 	li $v0, 6
- 	syscall
+	printS(inputHeight)
+	scanF()
+ 	mov.s $f6, $f0 #height
  	
- 	swc1 $f0, width
- 	lwc1 $f2, width		# largura em $f2
- 	
- 	li $v0, 4
-	la $a0, textHeight
- 	syscall
+	jal getVolume
+	swc1 $f12, roomVolume
 	
- 	li $v0, 6
- 	syscall
- 	
- 	swc1 $f0, height
- 	lwc1 $f3, height	# pe direito(altura) em $f3
- 	
- 	jal getVolume
- 	jal printFloat		# printa certo só rodar e testar !!! mudar getVolume pra $f12 !!!
-	
-	
-	li $v0, 4
-	la $a0, textPosition
- 	syscall
-	
+	printS(inputPosition)
 	li $v0, 5
 	syscall
-	
-	sw $t1, position   ##### arrumar ######
-	
-	
-	
-	
-	
- 	li $v0, 10
-	syscall
-	
-	
+	move $t0, $v0 #position
 
-printFloat: 			# jal printFloat funciona, valor float tem que ta em $f12
-	li $v0,2
-	syscall
+	beq $t0, 1, entreAndares
+	bgt $t0, 1, sobTelhado
 	
-	jr $ra
+returnHere1:
+	printS(roomOutput)
+	printF()
+	
+	
+	li $v0, 10
+	syscall
 	
 getVolume:
 	
-	mul.s $f4, $f1, $f2 # f4 para auxiliar apenas
-	mul.s $f1, $f4, $f3 # valor do volume em $f1
+	mul.s $f2, $f2, $f4 # f4 para auxiliar apenas
+	mul.s $f12, $f2, $f6 # valor do volume em $f12
 	
 	jr $ra
+
+entreAndares:
 	
+	lwc1 $f0, roomVolume
+	lwc1 $f2, floors
+	
+	mul.s $f12, $f0, $f2
+	swc1 $f12, roomKcal
+	
+	j returnHere1
+sobTelhado:
+	
+	lwc1 $f0, roomVolume
+	lwc1 $f2, roof
+	
+	mul.s $f12, $f0, $f2
+	swc1 $f12, roomKcal
+	
+	j returnHere1
 	
