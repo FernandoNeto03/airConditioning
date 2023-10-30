@@ -1,4 +1,5 @@
 .data
+	#Recinto
 	inputHeight: .asciiz "\nInsira o valor do pe direito\n"
 	inputWidth : .asciiz "\nInsira o valor da largura\n"
 	inputLength : .asciiz "\nInsira o valor do comprimento\n"
@@ -7,6 +8,9 @@
 	roomOutput: .asciiz "\nkcal/h recinto:"
 	roomVolume: .float 0.0
 	roomKcal : .float 0.0
+	
+	floors: .float 16.0
+	roof: .float 22.3
 	
 	#Janelas
 	windowLengthInput: .asciiz "\nQual o comprimento das janelas?\n"
@@ -30,9 +34,10 @@
 	doorArea: .float 0.0
 	doorKCalHour: .float 125.0
 	
-	floors: .float 16.0
-	roof: .float 22.3
-	
+	#Pessoas
+	pplAmmountInput: .asciiz "\nQuantas pessoas trabalham no ambiente?\n"
+	pplKcalHour: .float 125.0
+
 .macro printS(%string)
 .text
 	li $v0, 4
@@ -75,7 +80,7 @@ main:
 	printS(inputPosition)
 	li $v0, 5
 	syscall
-	move $t0, $v0 #position
+	move $t0, $v0
 
 	beq $t0, 1, entreAndares
 	bgt $t0, 1, sobTelhado
@@ -132,8 +137,15 @@ returnHere2:
 	#load para kcal/hora da porta
 	lwc1 $f2, doorKCalHour
 	mul.s $f12, $f12, $f2
+	swc1 $f12, doorKCalHour
 	
-	printF()
+	printS(pplAmmountInput)
+	scanF() #Numero de pessoas
+	
+	lwc1 $f2, pplKcalHour
+	mul.s $f12, $f0, $f2
+	swc1 $f12, pplKcalHour
+	
 	
 	li $v0, 10
 	syscall
