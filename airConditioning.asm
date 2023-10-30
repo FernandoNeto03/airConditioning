@@ -1,11 +1,11 @@
 .data
 	#Recinto
-	inputHeight: .asciiz "\nInsira o valor do pe direito\n"
-	inputWidth : .asciiz "\nInsira o valor da largura\n"
-	inputLength : .asciiz "\nInsira o valor do comprimento\n"
+	inputHeight: .asciiz "\nInsira o pe direito do ambiente\n"
+	inputWidth : .asciiz "\nInsira a largura do ambiente\n"
+	inputLength : .asciiz "\nInsira o comprimento do ambiente\n"
 	inputPosition: .asciiz "\n\nQual a posição do ambiente?\n\t[1]Entre andares;\n\t[2]Sob telhado;\n"
 
-	roomOutput: .asciiz "\nkcal/h recinto:"
+	roomOutput: .asciiz "\nkcal/h ambiente:"
 	roomVolume: .float 0.0
 	roomKcal : .float 0.0
 	
@@ -15,7 +15,7 @@
 	#Janelas
 	windowLengthInput: .asciiz "\nQual o comprimento das janelas?\n"
 	windowWidthInput: .asciiz "\nQual a largura das janelas?\n"
-	windowNumberInput: .asciiz "\nQuantas janelas tem no recinto?\n"
+	windowNumberInput: .asciiz "\nQuantas janelas tem no ambiente?\n"
 	windowSituationInput: .asciiz "\nQual a situacao das janelas?\n\t[1]Sol manha com cortina\t\t[2]Sol tarde com cortina\n\t[3]Sol manha sem cortina\t\t[4]Sol tarde sem cortina\n\t\t\t\t[5]Vidros na sombra\n"
 	windowArea: .float 0.0
 	windowKCal: .float 0.0
@@ -30,7 +30,7 @@
 	#Portas
 	doorLengthInput: .asciiz "\nQual o comprimento das portas?\n"
 	doorWidthInput: .asciiz "\nQual a largura das portas?\n"
-	doorNumberInput: .asciiz "\nQuantas portas tem no recinto?\n"
+	doorNumberInput: .asciiz "\nQuantas portas tem no ambiente?\n"
 	doorArea: .float 0.0
 	doorKCalHour: .float 125.0
 	
@@ -38,6 +38,16 @@
 	pplAmmountInput: .asciiz "\nQuantas pessoas trabalham no ambiente?\n"
 	pplKcalHour: .float 125.0
 
+	#Aparelhos
+	watt: .float 0.9
+	eletDevicesInput: .asciiz "\nQual o total da potencia em W que os aparelhos consomem no ambiente?\n"
+	eletDevicesKcalHour: .float 0.0
+	
+	#BTU
+	Kcal: .float 3.92 #1 KcalHora --> 3,92 BTU
+	btuInput: .asciiz "\nValor total do ambiente em BTU: "
+	thermalLoad: .float 0.0
+	
 .macro printS(%string)
 .text
 	li $v0, 4
@@ -119,7 +129,6 @@ returnHere1:
 	beq $t0, 5, situWindow5
 	
 returnHere2:
-	
 	printS(doorLengthInput)
 	scanF()
 	mov.s $f2, $f0 #door length
@@ -146,6 +155,19 @@ returnHere2:
 	mul.s $f12, $f0, $f2
 	swc1 $f12, pplKcalHour
 	
+	printS(eletDevicesInput)
+	scanF()
+	
+	lwc1 $f2, watt #Carregando o valor de Watt para a conversao
+	mul.s $f12, $f2, $f0 #Valor de Watt total da sala em Kcal/Hora
+	swc1 $f12, eletDevicesKcalHour
+	
+	j kcalToBTU
+	
+returnHere3:
+	printS(btuInput)
+	swc1 $f12, thermalLoad #Storage no valor total para a memoria
+	printF()
 	
 	li $v0, 10
 	syscall
@@ -175,6 +197,7 @@ entreAndares:
 	swc1 $f12, roomKcal
 	
 	j returnHere1
+	
 sobTelhado:
 	
 	lwc1 $f0, roomVolume
@@ -189,26 +212,61 @@ situWindow1:
 	
 	lwc1 $f2, varSituation1
 	mul.s $f12, $f12, $f2
+	swc1 $f12, windowKCal
 	
 	j returnHere2
 
 situWindow2:
+
 	lwc1 $f2, varSituation2
 	mul.s $f12, $f12, $f2
+	swc1 $f12, windowKCal
 	
 	j returnHere2
+	
 situWindow3:
+
 	lwc1 $f2, varSituation3
 	mul.s $f12, $f12, $f2
+	swc1 $f12, windowKCal
 	
 	j returnHere2
+	
 situWindow4:
+
 	lwc1 $f2, varSituation4
 	mul.s $f12, $f12, $f2
+	swc1 $f12, windowKCal
 	
 	j returnHere2
+	
 situWindow5:
+
 	lwc1 $f2, varSituation5
 	mul.s $f12, $f12, $f2
+	swc1 $f12, windowKCal
 	
 	j returnHere2
+
+kcalToBTU:
+	lwc1 $f0, thermalLoad #valor total da carga termica
+	lwc1 $f2, roomKcal#
+	lwc1 $f4, windowKCal #
+	lwc1 $f6, doorKCalHour#
+	lwc1 $f8, pplKcalHour#
+	lwc1 $f10, eletDevicesKcalHour#
+	lwc1 $f14, watt #valor para converter W para BTU
+	
+	#Soma total carga termica
+	add.s $f0, $f2, $f4
+	add.s $f0, $f0, $f6
+	add.s $f8, $f8, $f10
+	add.s $f0, $f0, $f8 #Soma total em $f0
+	
+	#Conversao
+	mul.s $f12, $f0, $f14
+	
+	j returnHere3
+	
+
+	
